@@ -8,6 +8,8 @@ inThisBuild(
 // for tests
 lazy val root = (project in file("."))
   .settings(assemblyJarName := "mal.jar")
-  .dependsOn(step0)
+  .dependsOn(step0, step1)
 
 lazy val step0 = project
+
+lazy val step1 = project
