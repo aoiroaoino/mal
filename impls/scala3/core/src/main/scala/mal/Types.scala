@@ -1,4 +1,4 @@
-package mal.step1
+package mal
 
 enum MalType {
   case List(toList: scala.List[MalType])

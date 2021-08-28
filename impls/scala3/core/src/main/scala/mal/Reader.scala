@@ -1,4 +1,4 @@
-package mal.step1
+package mal
 
 import scala.util.chaining._
 

@@ -1,4 +1,5 @@
-package mal.step1
+package mal
+package step1
 
 import scala.io.StdIn
 import scala.util.Try

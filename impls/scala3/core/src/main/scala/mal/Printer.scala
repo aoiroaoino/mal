@@ -1,4 +1,4 @@
-package mal.step1
+package mal
 
 object Printer {
 
