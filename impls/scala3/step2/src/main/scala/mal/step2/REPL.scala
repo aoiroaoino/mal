@@ -45,8 +45,8 @@ final class REPL {
       .takeWhile(l => l != null && l != ":q")
       .map { line =>
         if (line.nonEmpty) {
-          try read(line).pipe(eval(_, repEnv)).pipe(print)
-          catch { case NonFatal(e) => e.getMessage }
+          try read(line).pipe(eval(_, repEnv)).pipe(print) + "\n"
+          catch { case NonFatal(e) => e.getMessage + "\n" }
         } else {
           ""
         }

@@ -5,3 +5,5 @@ object step0_repl extends step0.Command
 object step1_read_print extends step1.Command
 
 object step2_eval extends step2.Command
+
+object step3_env extends step3.Command

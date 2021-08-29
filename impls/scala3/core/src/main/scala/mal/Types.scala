@@ -5,6 +5,10 @@ sealed trait MalType
 object MalType {
 
   final case class Sym(name: String) extends MalType
+  object Sym {
+    object Def { def unapply(sym: Sym) = sym.name == "def!" }
+    object Let { def unapply(sym: Sym) = sym.name == "let*" }
+  }
 
   final case class Int(toInt: scala.Int) extends MalType {
     def +(other: Int): Int = ap(other, _ + _)
