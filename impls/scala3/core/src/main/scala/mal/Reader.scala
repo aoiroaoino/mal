@@ -44,8 +44,32 @@ object Reader {
 
   private def readAtom(reader: Reader): MalType =
     reader.next() match {
-      case MalType.ParseAsInt(int) => int
-      case MalType.ParseAsSym(sym) => sym
-      case token                   => sys.error(s"Invalid atom token: $token")
+      case ReadAsNil(nil) => nil
+      case ReadAsTrue(t)  => t
+      case ReadAsFalse(f) => f
+      case ReadAsInt(int) => int
+      case ReadAsSym(sym) => sym
+      case token          => sys.error(s"Invalid atom token: $token")
     }
+
+  object ReadAsNil {
+    def unapply(s: String): Option[MalType.Nil] =
+      Option.when(s == "nil")(MalType.Nil())
+  }
+  object ReadAsTrue {
+    def unapply(s: String): Option[MalType.True] =
+      Option.when(s == "true")(MalType.True())
+  }
+  object ReadAsFalse {
+    def unapply(s: String): Option[MalType.False] =
+      Option.when(s == "false")(MalType.False())
+  }
+  object ReadAsInt {
+    def unapply(s: String): Option[MalType.Int] =
+      s.toIntOption.map(MalType.Int(_))
+  }
+  object ReadAsSym {
+    def unapply(s: String): Option[MalType.Sym] =
+      Some(MalType.Sym(s))
+  }
 }
