@@ -32,9 +32,9 @@ object MalType {
     def >(other: Int): Bool = ap(other, _ > _)
     def >=(other: Int): Bool = ap(other, _ >= _)
 
-    private def ap[A](other: Int, f: (scala.Int, scala.Int) => scala.Int): Int =
+    private def ap(other: Int, f: (scala.Int, scala.Int) => scala.Int): Int =
       Int(f(toInt, other.toInt))
-    private def ap[A](other: Int, f: (scala.Int, scala.Int) => Boolean): Bool =
+    private def ap(other: Int, f: (scala.Int, scala.Int) => Boolean): Bool =
       Bool(f(toInt, other.toInt))
   }
 
@@ -53,6 +53,9 @@ object MalType {
   object Func {
     def apply(func: PartialFunction[scala.List[MalType], MalType]): Func =
       args => if (func.isDefinedAt(args)) Right(func(args)) else Left(Error.InvalidArgs(args))
+
+    def apply(func: scala.List[MalType] => MalType): Func =
+      args => Right(func(args))
 
     enum Error {
       case InvalidArgs(args: scala.List[MalType])

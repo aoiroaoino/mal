@@ -16,7 +16,7 @@ object Core {
       MalType.Nil()
     },
     //
-    MalType.Sym("list") -> MalType.Func { case args => MalType.List(args) },
+    MalType.Sym("list") -> MalType.Func(MalType.List(_)),
     MalType.Sym("list?") -> MalType.Func {
       case (_: MalType.List) :: _ => MalType.True()
       case _ :: _                 => MalType.False()
