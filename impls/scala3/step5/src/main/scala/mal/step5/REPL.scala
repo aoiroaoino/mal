@@ -13,54 +13,84 @@ final class REPL {
 
   def read(src: String): MalType = Reader.readStr(src)
 
-  def eval(ast: MalType, env: Env): MalType = ast match {
-    case MalType.List(Nil) =>
-      ast
-    case MalType.List(MalType.Sym.Def() :: (sym: MalType.Sym) :: v :: Nil) =>
-      eval(v, env).tap(env.set(sym, _))
-    case MalType.List(MalType.Sym.Let() :: (lets: MalType.List) :: t :: Nil) =>
-      val letEnv = new Env(outer = Some(env))
-      lets.toList.grouped(2).foreach {
-        case List(k: MalType.Sym, v) => eval(v, letEnv).pipe(letEnv.set(k, _))
-        case _                       => sys.error(s"Invalid let*: $lets")
-      }
-      eval(t, letEnv)
-    case MalType.List(MalType.Sym.Do() :: ts) =>
-      evalAst(MalType.List(ts), env) match {
-        case t: MalType.List => t.toList.last
-        case _               => sys.error("Unexpected error")
-      }
-    case MalType.List(MalType.Sym.If() :: cond :: t :: f) =>
-      eval(cond, env) match {
-        case MalType.False() | MalType.Nil() =>
-          f match {
-            case Nil    => MalType.Nil()
-            case x :: _ => eval(x, env)
+  def eval(ast: MalType, env: Env): MalType = {
+    var _ast = ast
+    var _env = env
+    while (true) {
+      // println("eval: " + _ast.toString)
+      _ast match {
+        case MalType.List(Nil) =>
+          return _ast
+
+        case MalType.List(MalType.Sym.Def() :: (sym: MalType.Sym) :: v :: Nil) =>
+          return eval(v, _env).tap(_env.set(sym, _))
+
+        case MalType.List(MalType.Sym.Let() :: (lets: MalType.List) :: t :: Nil) =>
+          val letEnv = Env(outer = Some(_env))
+          lets.toList.grouped(2).foreach {
+            case List(k: MalType.Sym, v) => eval(v, letEnv).pipe(letEnv.set(k, _))
+            case _                       => sys.error(s"Invalid let*: $lets")
           }
-        case _ => eval(t, env)
+          _env = letEnv
+          _ast = t
+
+        case MalType.List(MalType.Sym.Do() :: ts) if ts.nonEmpty =>
+          // `ts` is non-empty list. init and last will always succeed
+          evalAst(MalType.List(ts.init), _env)
+          _ast = ts.last
+
+        case MalType.List(MalType.Sym.If() :: cond :: t :: f) =>
+          eval(cond, _env) match {
+            case MalType.False() | MalType.Nil() => _ast = if (f.isEmpty) MalType.Nil() else f.head
+            case _                               => _ast = t
+          }
+
+        case MalType.List(MalType.Sym.Fn() :: (ps: MalType.List) :: body :: Nil) =>
+          return MalType.Func.UserDefined(
+            ast = body,
+            params = ps,
+            env = _env,
+            fn = MalType.Func { args =>
+              val newEnv = Env(
+                outer = Some(_env),
+                binds = ps.toList.map { p =>
+                  require(p.isInstanceOf[MalType.Sym])
+                  p.asInstanceOf[MalType.Sym]
+                },
+                exprs = args
+              )
+              eval(body, newEnv)
+            }
+          )
+
+        case MalType.List(_) =>
+          evalAst(_ast, _env) match {
+            case MalType.List((f: MalType.Func) :: args) =>
+              return f(args).fold(e => sys.error("Error: " + e.toString), identity)
+            case MalType.List((f: MalType.Func.UserDefined) :: args) =>
+              _ast = f.ast
+              _env = Env(
+                outer = Some(f.env),
+                binds = f.params.toList.map { p =>
+                  require(p.isInstanceOf[MalType.Sym])
+                  p.asInstanceOf[MalType.Sym]
+                },
+                exprs = args
+              )
+            case t @ MalType.List(_) => sys.error(s"Error: $t is not applicable")
+            case t => sys.error(s"Invalid state: ${t}")
+          }
+
+        case _ =>
+          return evalAst(_ast, _env)
       }
-    case MalType.List(MalType.Sym.Fn() :: (ps: MalType.List) :: body :: Nil) =>
-      MalType.Func { case args =>
-        val newEnv = new Env(
-          outer = Some(env),
-          binds = ps.toList.map { p =>
-            require(p.isInstanceOf[MalType.Sym])
-            p.asInstanceOf[MalType.Sym]
-          },
-          exprs = args
-        )
-        eval(body, newEnv)
-      }
-    case MalType.List(_) =>
-      evalAst(ast, env) match {
-        case MalType.List((x: MalType.Func) :: xs) =>
-          x(xs).fold(e => sys.error("Error: " + e.toString), identity)
-        case t @ MalType.List(_) =>
-          sys.error(s"Error: $t is not applicable")
-        case t =>
-          sys.error(s"Invalid state: ${t}")
-      }
-    case _ => evalAst(ast, env)
+    }
+    sys.error(
+      s"""Unexpected error...
+         |  ast: $_ast
+         |  env: $_env
+         |""".stripMargin
+    )
   }
 
   def evalAst(ast: MalType, env: Env): MalType = ast match {
@@ -72,7 +102,7 @@ final class REPL {
   def print(tpe: MalType): String = Printer.prStr(tpe)
 
   def rep(): Unit = {
-    val repEnv = new Env(outer = None)
+    val repEnv = Env(outer = None)
     Core.ns.foreach(repEnv.set)
     Iterator
       .continually(StdIn.readLine("user> "))

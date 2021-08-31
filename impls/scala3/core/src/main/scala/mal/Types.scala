@@ -57,6 +57,8 @@ object MalType {
     def apply(func: scala.List[MalType] => MalType): Func =
       args => Right(func(args))
 
+    final case class UserDefined(ast: MalType, params: MalType.List, env: Env, fn: Func) extends MalType
+
     enum Error {
       case InvalidArgs(args: scala.List[MalType])
     }
