@@ -10,6 +10,7 @@ object Printer {
     case MalType.False()             => "false"
     case MalType.Sym(name)           => name
     case MalType.Keyword(name)       => ":" + name
+    case MalType.Atom(value)         => "(atom " + prStr(value, printReadably) + ")"
     case MalType.Int(i)              => i.toString
     case MalType.String(raw)         => prString(raw, printReadably)
     case MalType.List(types)         => types.map(prStr(_, printReadably)).mkString("(", " ", ")")

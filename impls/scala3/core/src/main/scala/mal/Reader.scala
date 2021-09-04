@@ -28,6 +28,7 @@ object Reader {
       case "(" => readList(reader)
       case "[" => readVector(reader)
       case "{" => readHashMap(reader)
+      case "@" => readAt(reader)
       case t   => readAtom(reader)
     }
 
@@ -39,6 +40,11 @@ object Reader {
 
   private def readHashMap(reader: Reader): MalType =
     readValues(reader, start = "{", end = "}").pipe(MalType.HashMap.fromKeyValues)
+
+  private def readAt(reader: Reader): MalType = {
+    require(reader.next() == "@")
+    MalType.List(MalType.Sym("deref") :: MalType.Sym(reader.next()) :: Nil)
+  }
 
   private def readValues(
       reader: Reader,
@@ -57,14 +63,15 @@ object Reader {
 
   private def readAtom(reader: Reader): MalType =
     reader.next() match {
-      case ReadAsNil(nil)   => nil
-      case ReadAsTrue(t)    => t
-      case ReadAsFalse(f)   => f
-      case ReadAsInt(int)   => int
-      case ReadAsString(s)  => s
-      case ReadAsKeyword(k) => k
-      case ReadAsSym(sym)   => sym
-      case token            => sys.error(s"unbalanced token: $token")
+      case s if s.startsWith(";") => readFrom(reader)
+      case ReadAsNil(nil)         => nil
+      case ReadAsTrue(t)          => t
+      case ReadAsFalse(f)         => f
+      case ReadAsInt(int)         => int
+      case ReadAsString(s)        => s
+      case ReadAsKeyword(k)       => k
+      case ReadAsSym(sym)         => sym
+      case token                  => sys.error(s"unbalanced token: $token")
     }
 
   object ReadAsNil {

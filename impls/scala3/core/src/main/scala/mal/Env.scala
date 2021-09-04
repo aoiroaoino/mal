@@ -4,7 +4,7 @@ import scala.collection.mutable
 import scala.util.chaining.*
 import scala.util.control.Breaks
 
-final case class Env(
+final class Env(
     outer: Option[Env],
     binds: Seq[MalType.Sym] = Seq.empty,
     exprs: Seq[MalType] = Seq.empty
@@ -30,11 +30,11 @@ final case class Env(
     data.get(sym) orElse outer.flatMap(_.find(sym))
 
   def get(sym: MalType.Sym): MalType = {
-//    println(toString)
+//    println(show)
     find(sym).getOrElse(sys.error(s"${sym.name} not found"))
   }
 
-  override def toString: String = {
+  def show: String = {
     val dataTable = {
       if (data.nonEmpty) {
         val maxKeyLength = data.keys.maxBy(_.name.length).name.length

@@ -1,7 +1,7 @@
 package mal
 
 import java.nio.file.{Files, Paths}
-import scala.util.chaining._
+import scala.util.chaining.*
 
 object Core {
   lazy val ns: Seq[(MalType.Sym, MalType)] = Seq(
@@ -50,6 +50,20 @@ object Core {
     MalType.Sym("count") -> MalType.Func {
       case MalType.Seq(l) :: _ => MalType.Int(l.length)
       case MalType.Nil() :: _  => MalType.Int(0)
+    },
+    //
+    MalType.Sym("atom") -> MalType.Func { case v :: Nil => MalType.Atom(v) },
+    MalType.Sym("atom?") -> MalType.Func {
+      case (t: MalType.Atom) :: Nil => MalType.True()
+      case _                        => MalType.False()
+    },
+    MalType.Sym("deref") -> MalType.Func { case (t: MalType.Atom) :: _ => t.value },
+    MalType.Sym("reset!") -> MalType.Func { case (t: MalType.Atom) :: v :: _ => t.value = v; v },
+    MalType.Sym("swap!") -> MalType.Func {
+      case (t: MalType.Atom) :: (f: MalType.Func) :: args =>
+        f(t.value :: args).fold(e => sys.error(e.toString), _.tap(t.value = _))
+      case (t: MalType.Atom) :: (f: MalType.Func.UserDefined) :: args =>
+        f.fn(t.value :: args).fold(e => sys.error(e.toString), _.tap(t.value = _))
     },
     //
     MalType.Sym("=") -> MalType.Func { case List(a, b) => MalType.Bool(eqMalType(a, b)) }

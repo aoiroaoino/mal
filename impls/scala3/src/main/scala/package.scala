@@ -11,3 +11,5 @@ object step3_env extends step3.Command
 object step4_if_fn_do extends step4.Command
 
 object step5_tco extends step5.Command
+
+object step6_file extends step6.Command

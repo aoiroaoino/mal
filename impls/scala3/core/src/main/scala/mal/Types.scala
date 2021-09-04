@@ -15,11 +15,18 @@ object MalType {
     object Do { def unapply(sym: Sym) = sym.name == "do" }
     object If { def unapply(sym: Sym) = sym.name == "if" }
     object Fn { def unapply(sym: Sym) = sym.name == "fn*" }
-    object Eval { def unapply(sym: Sym) = sym.name == "eval" }
   }
 
   final case class Keyword(name: scala.Predef.String) extends MalType {
     require(name.nonEmpty)
+  }
+
+  final class Atom private(var value: MalType) extends MalType {
+    override def toString = s"Atom($value)"
+  }
+  object Atom {
+    def apply(value: MalType): Atom = new Atom(value)
+    def unapply(atom: Atom): Option[MalType] = Some(atom.value)
   }
 
   sealed trait Bool extends MalType
