@@ -1,7 +1,8 @@
 package mal
 
 import scala.collection.mutable
-import scala.util.chaining._
+import scala.util.chaining.*
+import scala.util.control.Breaks
 
 final case class Env(
     outer: Option[Env],
@@ -10,7 +11,17 @@ final case class Env(
 ) {
   private[this] val data: mutable.Map[MalType.Sym, MalType] = mutable.Map.empty
 
-  binds.zip(exprs).foreach { case (k, v) => set(k, v) }
+  if (binds.nonEmpty) {
+    val bs = binds.toArray
+    val es = exprs.toArray
+    val b = new Breaks
+    b.breakable {
+      for (i <- 0 until binds.length) {
+        if (bs(i).name == "&") { set(bs(i + 1), MalType.List(es.drop(i).toList)); b.break() }
+        else set(bs(i), es(i))
+      }
+    }
+  }
 
   def set(sym: MalType.Sym, value: MalType): Unit =
     data(sym) = value

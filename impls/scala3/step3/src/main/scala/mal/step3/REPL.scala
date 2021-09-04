@@ -19,9 +19,9 @@ final class REPL {
             case x :: Nil => x
             case xs       => MalType.List(xs)
           }.pipe(eval(_, env).tap(env.set(sym, _)))
-        case MalType.Sym.Let() :: (lets: MalType.List) :: ts =>
+        case MalType.Sym.Let() :: MalType.Seq(lets) :: ts =>
           val letEnv = new Env(outer = Some(env))
-          lets.toList.grouped(2).foreach {
+          lets.grouped(2).foreach {
             case List(k: MalType.Sym, v) => eval(v, letEnv).pipe(letEnv.set(k, _))
             case _                       => sys.error(s"Invalid let*: $lets")
           }
@@ -43,9 +43,11 @@ final class REPL {
   }
 
   def evalAst(ast: MalType, env: Env): MalType = ast match {
-    case t: MalType.Sym  => env.get(t)
-    case t: MalType.List => MalType.List(t.toList.map(eval(_, env)))
-    case t               => t
+    case t: MalType.Sym     => env.get(t)
+    case t: MalType.List    => MalType.List(t.toList.map(eval(_, env)))
+    case t: MalType.Vector  => MalType.Vector(t.toList.map(eval(_, env)))
+    case t: MalType.HashMap => MalType.HashMap(t.toList.map { case (k, v) => (k, eval(v, env)) })
+    case t                  => t
   }
 
   def print(tpe: MalType): String = Printer.prStr(tpe)

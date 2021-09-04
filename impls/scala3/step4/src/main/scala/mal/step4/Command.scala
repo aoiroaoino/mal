@@ -6,7 +6,7 @@ trait Command {
   private[this] lazy val repl = new REPL
 
   def main(args: Array[String]): Unit = {
-    try repl.rep()
+    try repl.start()
     catch { case NonFatal(e) => e.printStackTrace(Console.err); sys.exit(1) }
   }
 }

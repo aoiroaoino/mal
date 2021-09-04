@@ -26,9 +26,11 @@ final class REPL {
   }
 
   def evalAst(ast: MalType, env: Env): MalType = ast match {
-    case t: MalType.Sym  => env.getOrElse(t, sys.error(s"Undefined: ${t.name}"))
-    case t: MalType.List => MalType.List(t.toList.map(eval(_, env)))
-    case t               => t
+    case t: MalType.Sym     => env.getOrElse(t, sys.error(s"Undefined: ${t.name}"))
+    case t: MalType.List    => MalType.List(t.toList.map(eval(_, env)))
+    case t: MalType.Vector  => MalType.Vector(t.toList.map(eval(_, env)))
+    case t: MalType.HashMap => MalType.HashMap(t.toList.map { case (k, v) => (k, eval(v, env)) })
+    case t                  => t
   }
 
   def print(tpe: MalType): String = Printer.prStr(tpe)

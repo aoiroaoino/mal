@@ -19,9 +19,9 @@ final class REPL {
       t.toList match {
         case MalType.Sym.Def() :: (sym: MalType.Sym) :: v :: Nil =>
           eval(v, env).tap(env.set(sym, _))
-        case MalType.Sym.Let() :: (lets: MalType.List) :: t :: Nil =>
+        case MalType.Sym.Let() :: MalType.Seq(lets) :: t :: Nil =>
           val letEnv = new Env(outer = Some(env))
-          lets.toList.grouped(2).foreach {
+          lets.grouped(2).foreach {
             case List(k: MalType.Sym, v) => eval(v, letEnv).pipe(letEnv.set(k, _))
             case _                       => sys.error(s"Invalid let*: $lets")
           }
@@ -40,11 +40,11 @@ final class REPL {
               }
             case _ => eval(t, env)
           }
-        case MalType.Sym.Fn() :: (ps: MalType.List) :: body :: Nil =>
+        case MalType.Sym.Fn() :: MalType.Seq(ps) :: body :: Nil =>
           MalType.Func { case args =>
             val newEnv = new Env(
               outer = Some(env),
-              binds = ps.toList.map { p =>
+              binds = ps.map { p =>
                 require(p.isInstanceOf[MalType.Sym])
                 p.asInstanceOf[MalType.Sym]
               },
@@ -68,22 +68,28 @@ final class REPL {
   }
 
   def evalAst(ast: MalType, env: Env): MalType = ast match {
-    case t: MalType.Sym  => env.get(t)
-    case t: MalType.List => MalType.List(t.toList.map(eval(_, env)))
-    case t               => t
+    case t: MalType.Sym     => env.get(t)
+    case t: MalType.List    => MalType.List(t.toList.map(eval(_, env)))
+    case t: MalType.Vector  => MalType.Vector(t.toList.map(eval(_, env)))
+    case t: MalType.HashMap => MalType.HashMap(t.toList.map { case (k, v) => (k, eval(v, env)) })
+    case t                  => t
   }
 
   def print(tpe: MalType): String = Printer.prStr(tpe)
 
-  def rep(): Unit = {
+  def start(): Unit = {
     val repEnv = new Env(outer = None)
     Core.ns.foreach(repEnv.set)
+
+    def rep(line: String): String = read(line).pipe(eval(_, repEnv)).pipe(print)
+    rep("(def! not (fn* (a) (if a false true)))")
+
     Iterator
       .continually(StdIn.readLine("user> "))
       .takeWhile(l => l != null && l != ":q")
       .map { line =>
         if (line.nonEmpty) {
-          try read(line).pipe(eval(_, repEnv)).pipe(print) + "\n"
+          try rep(line) + "\n"
           catch { case NonFatal(e) => e.getMessage + "\n" }
         } else {
           ""
