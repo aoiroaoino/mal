@@ -1,7 +1,6 @@
-package mal
-package step6
+package mal.step7
 
-import mal.{Env, MalType, Printer, Reader}
+import mal.{Core, Env, MalType, Printer, Reader}
 
 import java.nio.file.{Files, Paths}
 import scala.collection.mutable.ListBuffer
@@ -18,7 +17,7 @@ final class REPL {
     var _ast = ast
     var _env = env
     while (true) {
-//      println("eval: " + _ast.toString)
+      println("eval: " + (if (true) Printer.prStr(_ast) else _ast))
       _ast match {
         case MalType.List(Nil) =>
           return _ast
@@ -34,6 +33,15 @@ final class REPL {
           }
           _env = letEnv
           _ast = t
+
+        case MalType.List(MalType.Sym.Quote() :: t :: Nil) =>
+          return t
+
+        case MalType.List(MalType.Sym.Quasiquoteexpand() :: t :: Nil) =>
+          return quasiquote(t)
+
+        case MalType.List(MalType.Sym.Quasiquote() :: t :: Nil) =>
+          _ast = quasiquote(t)
 
         case MalType.List(MalType.Sym.Do() :: ts) if ts.nonEmpty =>
           // `ts` is non-empty list. init and last will always succeed
@@ -92,6 +100,26 @@ final class REPL {
          |  env: $_env
          |""".stripMargin
     )
+  }
+
+  private def quasiquote(ast: MalType): MalType = ast match {
+    case MalType.List(MalType.Sym.Unquote() :: t :: Nil) =>
+      t
+    case MalType.List(elt) =>
+      elt.foldRight(MalType.List(List.empty) :: Nil) {
+        case MalType.List(MalType.Sym.SpliceUnquote() :: t :: Nil) -> acc =>
+          MalType.List(MalType.Sym("concat") :: t :: acc) :: Nil
+        case t -> acc =>
+          MalType.List(MalType.Sym("cons") :: quasiquote(t) :: acc) :: Nil
+      }
+        .pipe {
+          case t :: Nil => t
+          case ts => MalType.List(ts)
+        }
+    case ast: (MalType.HashMap | MalType.Sym) =>
+      MalType.List(MalType.Sym.Quote() :: ast :: Nil)
+    case ast =>
+      ast
   }
 
   def evalAst(ast: MalType, env: Env): MalType = ast match {

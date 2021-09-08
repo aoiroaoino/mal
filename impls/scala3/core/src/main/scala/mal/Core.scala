@@ -1,6 +1,7 @@
 package mal
 
 import java.nio.file.{Files, Paths}
+import scala.collection.mutable.ListBuffer
 import scala.util.chaining.*
 
 object Core {
@@ -50,6 +51,14 @@ object Core {
     MalType.Sym("count") -> MalType.Func {
       case MalType.Seq(l) :: _ => MalType.Int(l.length)
       case MalType.Nil() :: _  => MalType.Int(0)
+    },
+    MalType.Sym("cons") -> MalType.Func { case a :: MalType.List(l) :: _ => MalType.List(a :: l) },
+    MalType.Sym("concat") -> MalType.Func {
+      case args if args.forall(_.isInstanceOf[MalType.List]) =>
+        args
+          .asInstanceOf[List[MalType.List]]
+          .foldLeft(ListBuffer.empty[MalType]) { (acc, l) => acc ++= l.toList }
+          .pipe(buf => MalType.List(buf.toList))
     },
     //
     MalType.Sym("atom") -> MalType.Func { case v :: Nil => MalType.Atom(v) },

@@ -10,11 +10,20 @@ object MalType {
 
   final case class Sym(name: scala.Predef.String) extends MalType
   object Sym {
-    object Def { def unapply(sym: Sym) = sym.name == "def!" }
-    object Let { def unapply(sym: Sym) = sym.name == "let*" }
-    object Do { def unapply(sym: Sym) = sym.name == "do" }
-    object If { def unapply(sym: Sym) = sym.name == "if" }
-    object Fn { def unapply(sym: Sym) = sym.name == "fn*" }
+    sealed abstract class SpecialForm(name: scala.Predef.String) {
+      def apply(): Sym = MalType.Sym(name)
+      def unapply(sym: Sym) = sym.name == name
+    }
+    object Def extends SpecialForm("def!")
+    object Let extends SpecialForm("let*")
+    object Do extends SpecialForm("do")
+    object If extends SpecialForm("if")
+    object Fn extends SpecialForm("fn*")
+    object Quote extends SpecialForm("quote")
+    object Quasiquote extends SpecialForm("quasiquote")
+    object Quasiquoteexpand extends SpecialForm("quasiquoteexpand")
+    object Unquote extends SpecialForm("unquote")
+    object SpliceUnquote extends SpecialForm("splice-unquote")
   }
 
   final case class Keyword(name: scala.Predef.String) extends MalType {

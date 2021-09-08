@@ -13,3 +13,5 @@ object step4_if_fn_do extends step4.Command
 object step5_tco extends step5.Command
 
 object step6_file extends step6.Command
+
+object step7_quote extends step7.Command
