@@ -52,13 +52,17 @@ object Core {
       case MalType.Seq(l) :: _ => MalType.Int(l.length)
       case MalType.Nil() :: _  => MalType.Int(0)
     },
-    MalType.Sym("cons") -> MalType.Func { case a :: MalType.List(l) :: _ => MalType.List(a :: l) },
+    MalType.Sym("cons") -> MalType.Func { case a :: MalType.Seq(l) :: _ => MalType.List(a :: l) },
     MalType.Sym("concat") -> MalType.Func {
-      case args if args.forall(_.isInstanceOf[MalType.List]) =>
+      case args if args.forall(a => a.isInstanceOf[MalType.Seq]) =>
         args
-          .asInstanceOf[List[MalType.List]]
+          .asInstanceOf[List[MalType.Seq]]
           .foldLeft(ListBuffer.empty[MalType]) { (acc, l) => acc ++= l.toList }
           .pipe(buf => MalType.List(buf.toList))
+    },
+    MalType.Sym("vec") -> MalType.Func {
+      case MalType.List(l) :: _         => MalType.Vector(l)
+      case (v @ MalType.Vector(_)) :: _ => v
     },
     //
     MalType.Sym("atom") -> MalType.Func { case v :: Nil => MalType.Atom(v) },

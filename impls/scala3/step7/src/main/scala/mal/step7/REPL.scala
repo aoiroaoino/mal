@@ -17,7 +17,7 @@ final class REPL {
     var _ast = ast
     var _env = env
     while (true) {
-      println("eval: " + (if (true) Printer.prStr(_ast) else _ast))
+//      println("eval: " + (if (true) Printer.prStr(_ast) else _ast))
       _ast match {
         case MalType.List(Nil) =>
           return _ast
@@ -105,13 +105,14 @@ final class REPL {
   private def quasiquote(ast: MalType): MalType = ast match {
     case MalType.List(MalType.Sym.Unquote() :: t :: Nil) =>
       t
-    case MalType.List(elt) =>
+    case orig @ MalType.Seq(elt) =>
       elt.foldRight(MalType.List(List.empty) :: Nil) {
         case MalType.List(MalType.Sym.SpliceUnquote() :: t :: Nil) -> acc =>
           MalType.List(MalType.Sym("concat") :: t :: acc) :: Nil
         case t -> acc =>
           MalType.List(MalType.Sym("cons") :: quasiquote(t) :: acc) :: Nil
       }
+        .pipe(t => if (orig.isVector) MalType.Sym("vec") :: t else t)
         .pipe {
           case t :: Nil => t
           case ts => MalType.List(ts)

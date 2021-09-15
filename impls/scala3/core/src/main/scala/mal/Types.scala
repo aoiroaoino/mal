@@ -69,6 +69,9 @@ object MalType {
 
   sealed trait Seq extends MalType {
     def toList: scala.List[MalType]
+
+    def isVector: Boolean = !isList
+    def isList: Boolean = !isVector
   }
   object Seq {
     def unapply(seq: Seq): Option[scala.List[MalType]] = Some(seq.toList)
@@ -76,6 +79,7 @@ object MalType {
 
   final case class List(toList: scala.List[MalType]) extends MalType.Seq {
     override def productPrefix = "MalType.List"
+    override def isList = true
 
     def isEmpty: Boolean = toList.isEmpty
     def length: scala.Int = toList.length
@@ -83,6 +87,7 @@ object MalType {
 
   final case class Vector(toList: scala.List[MalType]) extends MalType.Seq {
     override def productPrefix = "MalType.Vector"
+    override def isVector = true
   }
 
   final case class HashMap(toList: scala.List[(MalType, MalType)]) extends MalType {

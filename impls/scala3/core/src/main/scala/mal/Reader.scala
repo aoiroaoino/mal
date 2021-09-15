@@ -29,7 +29,19 @@ object Reader {
       case "[" => readVector(reader)
       case "{" => readHashMap(reader)
       case "@" => readAt(reader)
-      case t   => readAtom(reader)
+      case "'" =>
+        assert(reader.next() == "'")
+        MalType.List(MalType.Sym.Quote() :: readFrom(reader) :: Nil)
+      case "`" =>
+        assert(reader.next() == "`")
+        MalType.List(MalType.Sym.Quasiquote() :: readFrom(reader) :: Nil)
+      case "~" =>
+        assert(reader.next() == "~")
+        MalType.List(MalType.Sym.Unquote() :: readFrom(reader) :: Nil)
+      case "~@" =>
+        assert(reader.next() == "~@")
+        MalType.List(MalType.Sym.SpliceUnquote() :: readFrom(reader) :: Nil)
+      case t => readAtom(reader)
     }
 
   private def readList(reader: Reader): MalType =
@@ -101,7 +113,7 @@ object Reader {
             b.append(c)
           } else if (i.hasNext) {
             i.next() match {
-              case '\\' => b.append('\\').tap(println)
+              case '\\' => b.append('\\')
               case '"'  => b.append('\"')
               case 'n'  => b.append('\n')
               case _    => sys.error("unbalanced")
